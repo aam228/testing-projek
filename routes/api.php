@@ -193,7 +193,10 @@ Route::get('callback_watsapp', [CallbackController::class, 'CallbackEwallet'])->
 Route::post('point_customer', [PointCustController::class, 'CekPoint'])->name('point_customer');
 Route::post('point_update', [PointCustController::class, 'savePoint'])->name('point_update');
 // POS
-Route::post('save_pos', [PointOfSaleController::class, 'saveTransaction'])->name('save_pos');
+Route::middleware(\App\Http\Middleware\VerifyApiToken::class)->group(function () {
+    Route::post('save_pos', [PointOfSaleController::class, 'saveTransaction'])->name('save_pos');
+    Route::post('order', [PointOfSaleController::class, 'saveTransaction'])->name('order_secure');
+});
 Route::post('cek_order_pos', [PointOfSaleController::class, 'CekOrders'])->name('cek_order_pos');
 Route::post('cancel_invoice', [PointOfSaleController::class, 'cancelInvoice']);
 Route::post('repeat_order_check', [PointOfSaleController::class, 'orderRepeatcheck']);

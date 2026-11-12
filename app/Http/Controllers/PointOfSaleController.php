@@ -107,7 +107,7 @@ class PointOfSaleController extends Controller
 		$pm_id = $pm ? $pm->id : 1;
 		$std = DB::table('store_type_divisions')->select('id')->where('dv_name', '=', 'APPS')->first();
 		$std_id = $std ? $std->id : 1;
-		$cust_id = $request->cust_id;
+		$cust_id = $request->attributes->get('authenticated_customer_id');
 		$bank_code = $request->bank_code;
 		$amount = $request->amount;
 		//$nama_user = $request->nama_user;

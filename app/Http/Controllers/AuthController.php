@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
+use App\Services\CustomerAccessToken;
 use Illuminate\Support\Str;
 
 use Hash;
@@ -626,9 +627,8 @@ class AuthController extends Controller
 //     }
 
     
-    public function login(Request $request)
+    public function login(Request $request, CustomerAccessToken $tokens)
     {
-        $user = new User;
         $client_id = $request->client_id;
         $api_key = $request->api_key;
 
@@ -647,49 +647,42 @@ class AuthController extends Controller
             return response()->json($data);
         }
         
-        $data = [
-            'cust_email' => $request->l_username_email,
-            'password' => $request->l_password,
-        ];
-        Auth::attempt($data);
-        if (Auth::check()) {
-            $check = $user->checkData(['id','cust_email','cust_name','cust_phone', 'cust_bday', 'cust_phone_verify', 'cust_email_verify'], ['cust_email' => $request->l_username_email, 'cust_delete' => '0']);
-            if (!empty($check)) {
-                $r['status'] = "200";
-				$r['message'] = "Login successful.";
-				$r['cust_id'] = $check->id;
-				$r['email'] = $check->cust_email;
-				$r['nama'] = $check->cust_name;
-				$r['phone'] = $check->cust_phone;
-				$r['bday'] = $check->cust_bday;
-				$r['verify'] = $check->cust_phone_verify;
-				$r['verify_email'] = $check->cust_email_verify;
-				// update token id
-				$data_token = [
-					'cust_token_id' => $request->cust_token,
-				];
-				$save_update = DB::table("customers")->where('id', $check->id)->update($data_token);
-            } else {
-                Auth::logout();
-                $r['status'] = "400";
-				$r['message'] = "Invalid username or password.";
-				$r['cust_id'] = '';
-				$r['email'] = '';
-				$r['nama'] = '';
-				$r['phone'] = '';
-				$r['bday'] = '';
-				$r['verify'] = 0;
-				$r['verify_email'] = 0;
-            }
-        } else {
-            //Auth::logout();
-            $r['status'] = "400";
-			$r['message'] = "Invalid username or password.";
-			$r['email'] = '';
-			$r['nama'] = '';
-			$r['phone'] = '';
+        $email = $request->input('l_username_email');
+        $password = $request->input('l_password');
+        $customer = is_string($email) && $email !== '' && is_string($password) && $password !== ''
+            ? User::where('cust_email', $email)->where('cust_delete', '0')->first()
+            : null;
+
+        if (!$customer || !Hash::check($password, $customer->getAuthPassword())) {
+            return response()->json([
+                'status' => '400',
+                'message' => 'Invalid username or password.',
+                'email' => '',
+                'nama' => '',
+                'phone' => '',
+            ]);
         }
-        return response()->json($r);
+
+        $accessToken = $tokens->issue((int) $customer->id);
+        if ($request->has('cust_token')) {
+            DB::table('customers')->where('id', $customer->id)
+                ->update(['cust_token_id' => $request->cust_token]);
+        }
+
+        return response()->json([
+            'status' => '200',
+            'message' => 'Login successful.',
+            'cust_id' => $customer->id,
+            'email' => $customer->cust_email,
+            'nama' => $customer->cust_name,
+            'phone' => $customer->cust_phone,
+            'bday' => $customer->cust_bday,
+            'verify' => $customer->cust_phone_verify,
+            'verify_email' => $customer->cust_email_verify,
+            'access_token' => $accessToken,
+            'token_type' => 'Bearer',
+            'expires_in' => CustomerAccessToken::LIFETIME,
+        ])->header('Cache-Control', 'no-store');
     }
 
 	public function Registers(Request $request)
