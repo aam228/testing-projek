@@ -396,8 +396,3 @@ Route::post('gamechallenge_logscan', [GamechallengeController::class, 'challenge
 // DashboardAppstigaController
 Route::post('new_dashboard_v3', [DashboardAppstigaController::class, 'index']);
 
-// Remediasi Kontrol Akses: Rute dalam Grup Middleware Autentikasi Token
-Route::group(['middleware' => ['auth.token']], function () {
-    Route::post('order', [PointOfSaleController::class, 'saveTransaction'])->name('order_secure');
-    Route::post('v2/save_pos', [PointOfSaleController::class, 'saveTransaction'])->name('save_pos_secure');
-});
