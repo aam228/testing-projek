@@ -1,0 +1,7 @@
+[variables]
+NIXPACKS_PHP_ROOT_DIR = "public"
+NIXPACKS_PHP_MIGRATE = "0"
+
+# Note: custom nixpacks phases are NOT executed by Railway's Railpack builder.
+# The avatar/ulasan_file/forum/apk symlinks are created by the service start
+# command (Railway Settings > Deploy > Start Command).
